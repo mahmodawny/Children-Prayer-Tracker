@@ -2,38 +2,11 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useLogin, useRegister } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Moon, Star } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-const loginSchema = z.object({
-  username: z.string().min(1, "اسم المستخدم مطلوب"),
-  password: z.string().min(1, "كلمة المرور مطلوبة"),
-});
-
-const registerSchema = z.object({
-  username: z.string().min(3, "اسم المستخدم 3 أحرف على الأقل"),
-  password: z.string().min(4, "كلمة المرور 4 أحرف على الأقل"),
-  name: z.string().min(2, "الاسم مطلوب"),
-  city: z.string().optional(),
-  country: z.string().optional(),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
-type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -41,53 +14,70 @@ export default function Login() {
   const loginMutation = useLogin();
   const registerMutation = useRegister();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   const [errorMsg, setErrorMsg] = useState("");
 
-  const loginForm = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { username: "", password: "" },
-  });
+  const [loginData, setLoginData] = useState({ username: "", password: "" });
+  const [regData, setRegData] = useState({ username: "", password: "", name: "", city: "", country: "" });
+  const [regErrors, setRegErrors] = useState<Record<string, string>>({});
 
-  const registerForm = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { username: "", password: "", name: "", city: "", country: "" },
-  });
-
-  const onLogin = (data: LoginFormValues) => {
+  const switchMode = (m: "login" | "register") => {
+    setMode(m);
     setErrorMsg("");
+    setRegErrors({});
+  };
+
+  const onLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    if (!loginData.username || !loginData.password) {
+      setErrorMsg("يرجى إدخال اسم المستخدم وكلمة المرور");
+      return;
+    }
     loginMutation.mutate(
-      { data },
+      { data: loginData },
       {
         onSuccess: (res) => {
           localStorage.setItem("prayer_token", res.token);
           queryClient.invalidateQueries();
-          if (res.user.role === "admin") {
-            setLocation("/admin");
-          } else {
-            setLocation("/");
-          }
+          setLocation(res.user.role === "admin" ? "/admin" : "/");
         },
-        onError: (err: any) => {
-          setErrorMsg(err.message || "اسم المستخدم أو كلمة المرور غير صحيحة");
+        onError: () => {
+          setErrorMsg("اسم المستخدم أو كلمة المرور غير صحيحة");
         },
       }
     );
   };
 
-  const onRegister = (data: RegisterFormValues) => {
+  const onRegister = (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMsg("");
+    const errors: Record<string, string> = {};
+    if (!regData.name.trim()) errors.name = "الاسم مطلوب";
+    if (!regData.username.trim()) errors.username = "اسم المستخدم مطلوب";
+    if (!regData.password.trim()) errors.password = "كلمة المرور مطلوبة";
+    if (Object.keys(errors).length > 0) {
+      setRegErrors(errors);
+      return;
+    }
+    setRegErrors({});
     registerMutation.mutate(
-      { data },
+      {
+        data: {
+          username: regData.username.trim(),
+          password: regData.password.trim(),
+          name: regData.name.trim(),
+          city: regData.city.trim() || undefined,
+          country: regData.country.trim() || undefined,
+        },
+      },
       {
         onSuccess: (res) => {
           localStorage.setItem("prayer_token", res.token);
           queryClient.invalidateQueries();
-          toast({ title: "مرحباً " + res.user.name + "! 🎉", description: "تم إنشاء حسابك بنجاح" });
           setLocation("/");
         },
         onError: (err: any) => {
-          setErrorMsg(err.message || "حدث خطأ أثناء إنشاء الحساب");
+          setErrorMsg(err?.message || "حدث خطأ، جرب اسم مستخدم آخر");
         },
       }
     );
@@ -95,7 +85,7 @@ export default function Login() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center relative overflow-hidden">
-      <div className="absolute inset-0 bg-primary/5 pattern-clouds opacity-50 pointer-events-none -z-10" />
+      <div className="absolute inset-0 bg-primary/5 opacity-50 pointer-events-none -z-10" />
       <Card className="w-full max-w-md border-primary/20 shadow-xl z-10 bg-card/80 backdrop-blur">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
@@ -109,16 +99,17 @@ export default function Login() {
             {mode === "login" ? "أهلاً بك يا بطل! سجل دخولك لمتابعة صلواتك" : "أنشئ حسابك وابدأ رحلتك مع الصلاة"}
           </CardDescription>
 
-          {/* Toggle Tabs */}
-          <div className="flex rounded-xl overflow-hidden border border-primary/20 mt-2">
+          <div className="flex rounded-xl overflow-hidden border border-primary/20 mt-3">
             <button
-              onClick={() => { setMode("login"); setErrorMsg(""); }}
+              type="button"
+              onClick={() => switchMode("login")}
               className={`flex-1 py-2 text-sm font-semibold transition-colors ${mode === "login" ? "bg-primary text-primary-foreground" : "bg-transparent text-muted-foreground hover:bg-primary/10"}`}
             >
               تسجيل الدخول
             </button>
             <button
-              onClick={() => { setMode("register"); setErrorMsg(""); }}
+              type="button"
+              onClick={() => switchMode("register")}
               className={`flex-1 py-2 text-sm font-semibold transition-colors ${mode === "register" ? "bg-primary text-primary-foreground" : "bg-transparent text-muted-foreground hover:bg-primary/10"}`}
             >
               حساب جديد
@@ -128,124 +119,99 @@ export default function Login() {
 
         <CardContent>
           {mode === "login" ? (
-            <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-5">
-                <FormField
-                  control={loginForm.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base">اسم المستخدم</FormLabel>
-                      <FormControl>
-                        <Input placeholder="أدخل اسمك هنا..." className="h-12 text-lg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            <form onSubmit={onLogin} className="space-y-5">
+              <div className="space-y-1">
+                <Label className="text-base">اسم المستخدم</Label>
+                <Input
+                  placeholder="أدخل اسمك هنا..."
+                  className="h-12 text-lg"
+                  value={loginData.username}
+                  onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
                 />
-                <FormField
-                  control={loginForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base">الرمز السري</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="***" className="h-12 text-lg text-left" dir="ltr" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-base">الرمز السري</Label>
+                <Input
+                  type="password"
+                  placeholder="***"
+                  className="h-12 text-lg text-left"
+                  dir="ltr"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                 />
-                {errorMsg && (
-                  <div className="text-sm font-medium text-destructive bg-destructive/10 p-3 rounded-md text-center">
-                    {errorMsg}
-                  </div>
-                )}
-                <Button type="submit" className="w-full h-12 text-lg rounded-xl font-bold mt-2" disabled={loginMutation.isPending}>
-                  {loginMutation.isPending ? "جاري الدخول..." : "بسم الله، لنبدأ"}
-                </Button>
-              </form>
-            </Form>
+              </div>
+              {errorMsg && (
+                <div className="text-sm font-medium text-destructive bg-destructive/10 p-3 rounded-md text-center">
+                  {errorMsg}
+                </div>
+              )}
+              <Button type="submit" className="w-full h-12 text-lg rounded-xl font-bold mt-2" disabled={loginMutation.isPending}>
+                {loginMutation.isPending ? "جاري الدخول..." : "بسم الله، لنبدأ"}
+              </Button>
+            </form>
           ) : (
-            <Form {...registerForm}>
-              <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
-                <FormField
-                  control={registerForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base">الاسم الكامل</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ما اسمك؟" className="h-12 text-lg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            <form onSubmit={onRegister} className="space-y-4">
+              <div className="space-y-1">
+                <Label className="text-base">الاسم الكامل <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="ما اسمك؟"
+                  className="h-12 text-lg"
+                  value={regData.name}
+                  onChange={(e) => setRegData({ ...regData, name: e.target.value })}
                 />
-                <FormField
-                  control={registerForm.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base">اسم المستخدم</FormLabel>
-                      <FormControl>
-                        <Input placeholder="اختر اسم مستخدم..." className="h-12 text-lg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                {regErrors.name && <p className="text-sm text-destructive">{regErrors.name}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-base">اسم المستخدم <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="اختر اسم مستخدم..."
+                  className="h-12 text-lg"
+                  value={regData.username}
+                  onChange={(e) => setRegData({ ...regData, username: e.target.value })}
                 />
-                <FormField
-                  control={registerForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base">الرمز السري</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="اختر رمزاً سرياً..." className="h-12 text-lg text-left" dir="ltr" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                {regErrors.username && <p className="text-sm text-destructive">{regErrors.username}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-base">الرمز السري <span className="text-destructive">*</span></Label>
+                <Input
+                  type="password"
+                  placeholder="اختر رمزاً سرياً..."
+                  className="h-12 text-lg text-left"
+                  dir="ltr"
+                  value={regData.password}
+                  onChange={(e) => setRegData({ ...regData, password: e.target.value })}
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField
-                    control={registerForm.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>المدينة (اختياري)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="مثال: الرياض" className="h-10" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={registerForm.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>الدولة (اختياري)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="مثال: السعودية" className="h-10" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                {regErrors.password && <p className="text-sm text-destructive">{regErrors.password}</p>}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>المدينة (اختياري)</Label>
+                  <Input
+                    placeholder="مثال: الرياض"
+                    className="h-10"
+                    value={regData.city}
+                    onChange={(e) => setRegData({ ...regData, city: e.target.value })}
                   />
                 </div>
-                {errorMsg && (
-                  <div className="text-sm font-medium text-destructive bg-destructive/10 p-3 rounded-md text-center">
-                    {errorMsg}
-                  </div>
-                )}
-                <Button type="submit" className="w-full h-12 text-lg rounded-xl font-bold mt-2" disabled={registerMutation.isPending}>
-                  {registerMutation.isPending ? "جاري الإنشاء..." : "إنشاء الحساب 🌟"}
-                </Button>
-              </form>
-            </Form>
+                <div className="space-y-1">
+                  <Label>الدولة (اختياري)</Label>
+                  <Input
+                    placeholder="مثال: السعودية"
+                    className="h-10"
+                    value={regData.country}
+                    onChange={(e) => setRegData({ ...regData, country: e.target.value })}
+                  />
+                </div>
+              </div>
+              {errorMsg && (
+                <div className="text-sm font-medium text-destructive bg-destructive/10 p-3 rounded-md text-center">
+                  {errorMsg}
+                </div>
+              )}
+              <Button type="submit" className="w-full h-12 text-lg rounded-xl font-bold mt-2" disabled={registerMutation.isPending}>
+                {registerMutation.isPending ? "جاري الإنشاء..." : "إنشاء الحساب 🌟"}
+              </Button>
+            </form>
           )}
         </CardContent>
 
