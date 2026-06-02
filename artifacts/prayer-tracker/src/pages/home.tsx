@@ -16,22 +16,6 @@ const PRAYER_ICONS: Record<string, any> = {
   isha: Moon,
 };
 
-const PRAYER_GRADIENTS: Record<string, string> = {
-  fajr: "from-indigo-500/20 to-purple-500/10",
-  dhuhr: "from-amber-500/20 to-yellow-400/10",
-  asr: "from-orange-500/20 to-amber-400/10",
-  maghrib: "from-rose-500/20 to-orange-400/10",
-  isha: "from-blue-900/20 to-indigo-900/10",
-};
-
-const PRAYER_ICON_COLORS: Record<string, string> = {
-  fajr: "bg-indigo-100 text-indigo-600",
-  dhuhr: "bg-amber-100 text-amber-600",
-  asr: "bg-orange-100 text-orange-600",
-  maghrib: "bg-rose-100 text-rose-600",
-  isha: "bg-blue-900/20 text-blue-800",
-};
-
 export default function Home() {
   const queryClient = useQueryClient();
   const { data: user } = useGetMe();
@@ -74,7 +58,6 @@ export default function Home() {
   const progress = (today.recordedCount / today.totalCount) * 100;
   const todayFormatted = format(new Date(today.date + "T00:00:00"), "EEEE، d MMMM yyyy", { locale: ar });
   const allDone = today.recordedCount === today.totalCount;
-
   const circumference = 2 * Math.PI * 38;
 
   return (
@@ -82,28 +65,23 @@ export default function Home() {
 
       {/* Hero Banner */}
       <div className={`relative overflow-hidden rounded-3xl p-6 text-white ${allDone ? "bg-gradient-to-br from-emerald-500 to-teal-600" : "bg-gradient-to-br from-primary to-primary/80"}`}>
-        {/* decorative circles */}
         <div className="absolute -top-8 -left-8 w-40 h-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-10 -right-6 w-52 h-52 rounded-full bg-white/10" />
         <div className="absolute top-4 right-16 w-16 h-16 rounded-full bg-white/10" />
 
         <div className="relative flex items-center justify-between gap-4">
           <div className="space-y-1">
-            <p className="text-white/70 text-sm font-medium">{todayFormatted}</p>
-            <h1 className="text-2xl font-bold">صلوات اليوم</h1>
-            {allDone ? (
-              <p className="text-white/90 text-sm font-medium mt-1">ما شاء الله! أتممت صلوات اليوم 🎉</p>
-            ) : (
-              <p className="text-white/80 text-sm mt-1">
-                {prayerTimes?.city ? `أوقات القاهرة` : "تابع صلواتك"}
-              </p>
-            )}
+            <p className="text-white/80 text-sm font-medium">{todayFormatted}</p>
+            <h1 className="text-2xl font-bold text-white">صلوات اليوم</h1>
+            <p className="text-white/70 text-sm">
+              {prayerTimes?.city ? "أوقات القاهرة" : "تابع صلواتك"}
+            </p>
             <div className="mt-3 flex items-center gap-2">
               <div className="flex gap-1.5">
                 {today.prayers.map(p => (
                   <div
                     key={p.name}
-                    className={`w-2.5 h-2.5 rounded-full transition-all ${p.recorded ? "bg-white scale-110" : "bg-white/30"}`}
+                    className={`w-2.5 h-2.5 rounded-full transition-all ${p.recorded ? "bg-white" : "bg-white/30"}`}
                   />
                 ))}
               </div>
@@ -111,10 +89,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Circular Progress */}
           <div className="relative flex-shrink-0 w-24 h-24 flex items-center justify-center">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="8" />
+              <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="8" />
               <motion.circle
                 cx="50" cy="50" r="38" fill="none" stroke="white" strokeWidth="8"
                 strokeLinecap="round"
@@ -126,12 +103,11 @@ export default function Home() {
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center font-bold text-white">
               <span className="text-2xl leading-none">{today.recordedCount}</span>
-              <span className="text-xs text-white/70">/{today.totalCount}</span>
+              <span className="text-sm text-white/80">/{today.totalCount}</span>
             </div>
           </div>
         </div>
 
-        {/* Progress bar */}
         <div className="relative mt-4 h-1.5 bg-white/20 rounded-full overflow-hidden">
           <motion.div
             className="absolute top-0 right-0 h-full bg-white rounded-full"
@@ -147,8 +123,6 @@ export default function Home() {
         {today.prayers.map((prayer, index) => {
           const isCelebrating = celebrating === prayer.name;
           const Icon = PRAYER_ICONS[prayer.name] || Clock;
-          const gradient = PRAYER_GRADIENTS[prayer.name] || "";
-          const iconColor = PRAYER_ICON_COLORS[prayer.name] || "bg-muted text-muted-foreground";
 
           return (
             <motion.div
@@ -157,18 +131,15 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.08, duration: 0.35 }}
             >
-              <div
-                className={`
-                  relative overflow-hidden rounded-2xl border transition-all duration-300
-                  ${prayer.recorded
-                    ? "bg-gradient-to-l " + gradient + " border-primary/20 shadow-sm"
-                    : prayer.canRecord
-                    ? "bg-card border-primary/40 shadow-md ring-1 ring-primary/20"
-                    : "bg-card/50 border-border/50 opacity-70"
-                  }
-                `}
-              >
-                {/* Celebrate ripple */}
+              <div className={`
+                relative overflow-hidden rounded-2xl border-2 transition-all duration-300
+                ${prayer.recorded
+                  ? "bg-primary/10 border-primary/40"
+                  : prayer.canRecord
+                  ? "bg-card border-primary shadow-md"
+                  : "bg-card border-border"
+                }
+              `}>
                 <AnimatePresence>
                   {isCelebrating && (
                     <motion.div
@@ -184,14 +155,21 @@ export default function Home() {
                 <div className="relative z-10 flex items-center justify-between p-4 gap-3">
                   {/* Icon + Name */}
                   <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${prayer.recorded ? "bg-primary text-primary-foreground" : iconColor}`}>
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0
+                      ${prayer.recorded
+                        ? "bg-primary text-primary-foreground"
+                        : prayer.canRecord
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted text-muted-foreground"
+                      }
+                    `}>
                       {prayer.recorded
                         ? <CheckCircle2 className="w-6 h-6" />
                         : <Icon className="w-5 h-5" />
                       }
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold leading-tight">{prayer.nameAr}</h3>
+                      <h3 className="text-lg font-bold text-foreground leading-tight">{prayer.nameAr}</h3>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                         <Clock className="w-3 h-3" />
                         <span>{prayer.time}</span>
@@ -202,14 +180,14 @@ export default function Home() {
                   {/* Action */}
                   <div className="flex-shrink-0">
                     {prayer.recorded ? (
-                      <div className="flex items-center gap-1.5 text-primary text-sm font-semibold bg-primary/10 px-3 py-1.5 rounded-full">
+                      <div className="flex items-center gap-1.5 text-primary text-sm font-semibold bg-primary/15 px-3 py-1.5 rounded-full">
                         <Check className="w-4 h-4" />
                         تمت
                       </div>
                     ) : prayer.canRecord ? (
                       <Button
                         size="sm"
-                        className="rounded-full px-5 shadow-sm font-bold"
+                        className="rounded-full px-5 font-bold"
                         onClick={() => handleRecord(prayer.name, today.date)}
                         disabled={recordMutation.isPending}
                       >
@@ -217,11 +195,11 @@ export default function Home() {
                         سجّل
                       </Button>
                     ) : prayer.passed ? (
-                      <span className="text-destructive text-xs font-medium bg-destructive/10 px-3 py-1.5 rounded-full">
+                      <span className="text-destructive text-xs font-medium bg-destructive/10 border border-destructive/20 px-3 py-1.5 rounded-full">
                         فات وقتها
                       </span>
                     ) : (
-                      <span className="text-muted-foreground text-xs flex items-center gap-1 bg-muted/60 px-3 py-1.5 rounded-full">
+                      <span className="text-muted-foreground text-xs flex items-center gap-1 bg-muted px-3 py-1.5 rounded-full border border-border">
                         <Lock className="w-3 h-3" />
                         لم يحن
                       </span>
