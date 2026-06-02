@@ -7,6 +7,8 @@ import { RecordPrayerBody, GetPrayerHistoryQueryParams, GetPrayerTimesQueryParam
 
 const router = Router();
 
+const TIMEZONE = "Africa/Cairo";
+
 const PRAYER_NAMES = ["fajr", "dhuhr", "asr", "maghrib", "isha"] as const;
 const PRAYER_NAMES_AR: Record<string, string> = {
   fajr: "الفجر",
@@ -16,6 +18,28 @@ const PRAYER_NAMES_AR: Record<string, string> = {
   isha: "العشاء",
 };
 
+function getNowInCairo(): { date: string; minutes: number } {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIMEZONE,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? "0";
+  const year = get("year");
+  const month = get("month");
+  const day = get("day");
+  const hour = parseInt(get("hour"));
+  const minute = parseInt(get("minute"));
+
+  return {
+    date: `${year}-${month}-${day}`,
+    minutes: hour * 60 + minute,
+  };
+}
+
 async function fetchPrayerTimes(city: string, country: string, date: string) {
   try {
     const url = `https://api.aladhan.com/v1/timingsByCity/${date}?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=4`;
@@ -23,11 +47,11 @@ async function fetchPrayerTimes(city: string, country: string, date: string) {
     const data = await res.json() as { code: number; data: { timings: Record<string, string> } };
     if (data.code === 200) {
       return {
-        fajr: data.data.timings.Fajr,
-        dhuhr: data.data.timings.Dhuhr,
-        asr: data.data.timings.Asr,
-        maghrib: data.data.timings.Maghrib,
-        isha: data.data.timings.Isha,
+        fajr: data.data.timings.Fajr.substring(0, 5),
+        dhuhr: data.data.timings.Dhuhr.substring(0, 5),
+        asr: data.data.timings.Asr.substring(0, 5),
+        maghrib: data.data.timings.Maghrib.substring(0, 5),
+        isha: data.data.timings.Isha.substring(0, 5),
       };
     }
   } catch {}
@@ -35,7 +59,7 @@ async function fetchPrayerTimes(city: string, country: string, date: string) {
 }
 
 function getDefaultPrayerTimes() {
-  return { fajr: "05:00", dhuhr: "12:30", asr: "15:45", maghrib: "18:30", isha: "20:00" };
+  return { fajr: "04:30", dhuhr: "12:15", asr: "15:30", maghrib: "18:45", isha: "20:15" };
 }
 
 function timeToMinutes(time: string): number {
@@ -54,13 +78,11 @@ function getPrayerWindowEnd(times: Record<string, string>, prayerName: string): 
 
 router.get("/prayers/today", authMiddleware, async (req, res) => {
   const userId = req.user!.id;
-  const today = new Date().toISOString().slice(0, 10);
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const { date: today, minutes: currentMinutes } = getNowInCairo();
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-  const city = user?.city ?? "Mecca";
-  const country = user?.country ?? "Saudi Arabia";
+  const city = user?.city ?? "Cairo";
+  const country = user?.country ?? "Egypt";
 
   const times = await fetchPrayerTimes(city, country, today);
 
@@ -99,16 +121,13 @@ router.post("/prayers/record", authMiddleware, async (req, res) => {
 
   const { prayerName, date } = parsed.data;
   const userId = req.user!.id;
-  const today = new Date().toISOString().slice(0, 10);
+  const { date: today, minutes: currentMinutes } = getNowInCairo();
 
   if (date !== today) { res.status(400).json({ error: "Can only record today's prayers" }); return; }
 
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-  const city = user?.city ?? "Mecca";
-  const country = user?.country ?? "Saudi Arabia";
+  const city = user?.city ?? "Cairo";
+  const country = user?.country ?? "Egypt";
   const times = await fetchPrayerTimes(city, country, today);
 
   const prayerStart = timeToMinutes(times[prayerName]);
@@ -127,7 +146,7 @@ router.post("/prayers/record", authMiddleware, async (req, res) => {
     .where(and(eq(prayerRecordsTable.userId, userId), eq(prayerRecordsTable.prayerName, prayerName), eq(prayerRecordsTable.date, date)));
   if (existingRecords.length > 0) { res.status(409).json({ error: "Prayer already recorded" }); return; }
 
-  const performedAt = now.toISOString();
+  const performedAt = new Date().toISOString();
   const [record] = await db.insert(prayerRecordsTable).values({
     userId, prayerName, date, performedAt,
   }).returning();
@@ -224,9 +243,9 @@ router.get("/prayers/history", authMiddleware, async (req, res) => {
 
 router.get("/prayers/times", async (req, res) => {
   const parsed = GetPrayerTimesQueryParams.safeParse(req.query);
-  const city = (parsed.success && parsed.data.city) ? parsed.data.city : "Mecca";
-  const country = (parsed.success && parsed.data.country) ? parsed.data.country : "Saudi Arabia";
-  const today = new Date().toISOString().slice(0, 10);
+  const city = (parsed.success && parsed.data.city) ? parsed.data.city : "Cairo";
+  const country = (parsed.success && parsed.data.country) ? parsed.data.country : "Egypt";
+  const { date: today } = getNowInCairo();
   const times = await fetchPrayerTimes(city, country, today);
   res.json({ ...times, date: today, city, country });
 });
