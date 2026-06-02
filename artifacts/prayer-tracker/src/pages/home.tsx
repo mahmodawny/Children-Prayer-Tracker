@@ -126,6 +126,7 @@ export default function Home() {
 
           return (
             <motion.div
+              style={{margin:"10px"}}
               key={prayer.name}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
