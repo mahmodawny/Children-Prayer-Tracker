@@ -85,6 +85,23 @@ router.post("/auth/register", async (req, res) => {
   });
 });
 
+router.post("/auth/change-password", authMiddleware, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword || typeof newPassword !== "string" || newPassword.length < 4) {
+    res.status(400).json({ error: "بيانات غير صحيحة" });
+    return;
+  }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.id)).limit(1);
+  if (!user) { res.status(401).json({ error: "User not found" }); return; }
+
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) { res.status(401).json({ error: "كلمة المرور الحالية غير صحيحة" }); return; }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, req.user!.id));
+  res.json({ success: true });
+});
+
 router.get("/auth/me", authMiddleware, async (req, res) => {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.id)).limit(1);
   if (!user) {
