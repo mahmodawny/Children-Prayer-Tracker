@@ -3,20 +3,30 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Prayer Tracker API for children
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: children
+    description: Children management
+  - name: prayers
+    description: Prayer tracking
+  - name: stats
+    description: Statistics and analytics
+  - name: leaderboard
+    description: Leaderboard and achievements
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +34,343 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login for children or admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new child
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: Username already exists
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user info
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  /children:
+    get:
+      operationId: listChildren
+      tags: [children]
+      summary: List all children (admin only)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [name, prayers, compliance]
+      responses:
+        "200":
+          description: List of children
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChildSummary"
+    post:
+      operationId: createChild
+      tags: [children]
+      summary: Create a new child (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChildInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /children/{id}:
+    get:
+      operationId: getChild
+      tags: [children]
+      summary: Get a child by ID (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Child details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildDetail"
+    patch:
+      operationId: updateChild
+      tags: [children]
+      summary: Update a child (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChildUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteChild
+      tags: [children]
+      summary: Delete a child (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /prayers/today:
+    get:
+      operationId: getTodayPrayers
+      tags: [prayers]
+      summary: Get today's prayers with their status for the logged-in child
+      responses:
+        "200":
+          description: Today's prayers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodayPrayers"
+
+  /prayers/record:
+    post:
+      operationId: recordPrayer
+      tags: [prayers]
+      summary: Record a prayer as performed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrayerRecordInput"
+      responses:
+        "201":
+          description: Prayer recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrayerRecord"
+        "400":
+          description: Prayer time has passed or not yet available
+        "409":
+          description: Prayer already recorded
+
+  /prayers/history:
+    get:
+      operationId: getPrayerHistory
+      tags: [prayers]
+      summary: Get prayer history for the logged-in child
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: Prayer history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DayRecord"
+
+  /prayers/times:
+    get:
+      operationId: getPrayerTimes
+      tags: [prayers]
+      summary: Get prayer times for today based on location
+      parameters:
+        - name: city
+          in: query
+          schema:
+            type: string
+        - name: country
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Prayer times
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrayerTimes"
+
+  /stats/me:
+    get:
+      operationId: getMyStats
+      tags: [stats]
+      summary: Get statistics for the logged-in child
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildStats"
+
+  /stats/child/{id}:
+    get:
+      operationId: getChildStats
+      tags: [stats]
+      summary: Get stats for a specific child (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildStats"
+
+  /stats/admin/overview:
+    get:
+      operationId: getAdminOverview
+      tags: [stats]
+      summary: Get admin overview stats
+      responses:
+        "200":
+          description: Admin overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOverview"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get leaderboard of children by points
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, all]
+            default: weekly
+      responses:
+        "200":
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  /achievements/me:
+    get:
+      operationId: getMyAchievements
+      tags: [leaderboard]
+      summary: Get achievements for the logged-in child
+      responses:
+        "200":
+          description: Achievements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Achievement"
+
+  /achievements/child/{id}:
+    get:
+      operationId: getChildAchievements
+      tags: [leaderboard]
+      summary: Get achievements for a specific child (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Achievements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Achievement"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +381,295 @@ components:
       required:
         - status
 
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    RegisterInput:
+      type: object
+      required: [username, password, name]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+
+    User:
+      type: object
+      required: [id, username, name, role, points]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [child, admin]
+        points:
+          type: integer
+        city:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    ChildInput:
+      type: object
+      required: [username, password, name]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+
+    ChildUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+
+    ChildSummary:
+      type: object
+      required: [id, name, username, totalPrayers, compliance, points, rank]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        username:
+          type: string
+        totalPrayers:
+          type: integer
+        compliance:
+          type: number
+        points:
+          type: integer
+        rank:
+          type: integer
+
+    ChildDetail:
+      type: object
+      required: [id, name, username, totalPrayers, compliance, points, city, country, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        username:
+          type: string
+        totalPrayers:
+          type: integer
+        compliance:
+          type: number
+        points:
+          type: integer
+        city:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    PrayerRecordInput:
+      type: object
+      required: [prayerName, date]
+      properties:
+        prayerName:
+          type: string
+          enum: [fajr, dhuhr, asr, maghrib, isha]
+        date:
+          type: string
+
+    PrayerRecord:
+      type: object
+      required: [id, userId, prayerName, date, performedAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        prayerName:
+          type: string
+        date:
+          type: string
+        performedAt:
+          type: string
+
+    PrayerSlot:
+      type: object
+      required: [name, nameAr, time, canRecord, recorded, passed]
+      properties:
+        name:
+          type: string
+        nameAr:
+          type: string
+        time:
+          type: string
+        canRecord:
+          type: boolean
+        recorded:
+          type: boolean
+        passed:
+          type: boolean
+
+    TodayPrayers:
+      type: object
+      required: [date, prayers, recordedCount, totalCount]
+      properties:
+        date:
+          type: string
+        prayers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PrayerSlot"
+        recordedCount:
+          type: integer
+        totalCount:
+          type: integer
+
+    PrayerTimes:
+      type: object
+      required: [fajr, dhuhr, asr, maghrib, isha, date, city, country]
+      properties:
+        fajr:
+          type: string
+        dhuhr:
+          type: string
+        asr:
+          type: string
+        maghrib:
+          type: string
+        isha:
+          type: string
+        date:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+
+    DayRecord:
+      type: object
+      required: [date, prayers]
+      properties:
+        date:
+          type: string
+        prayers:
+          type: array
+          items:
+            type: string
+
+    ChildStats:
+      type: object
+      required: [totalPrayers, dailyCompliance, weeklyCompliance, monthlyCompliance, currentStreak, points, todayCount, weekCount, monthCount]
+      properties:
+        totalPrayers:
+          type: integer
+        dailyCompliance:
+          type: number
+        weeklyCompliance:
+          type: number
+        monthlyCompliance:
+          type: number
+        currentStreak:
+          type: integer
+        points:
+          type: integer
+        todayCount:
+          type: integer
+        weekCount:
+          type: integer
+        monthCount:
+          type: integer
+
+    AdminOverview:
+      type: object
+      required: [totalChildren, totalPrayers, averageCompliance, topChild, todayPrayers]
+      properties:
+        totalChildren:
+          type: integer
+        totalPrayers:
+          type: integer
+        averageCompliance:
+          type: number
+        topChild:
+          type: ["string", "null"]
+        todayPrayers:
+          type: integer
+
+    LeaderboardEntry:
+      type: object
+      required: [rank, userId, name, username, points, prayers, compliance]
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        username:
+          type: string
+        points:
+          type: integer
+        prayers:
+          type: integer
+        compliance:
+          type: number
+
+    Achievement:
+      type: object
+      required: [id, type, title, titleAr, description, descriptionAr, earnedAt, icon]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        title:
+          type: string
+        titleAr:
+          type: string
+        description:
+          type: string
+        descriptionAr:
+          type: string
+        earnedAt:
+          type: string
+        icon:
+          type: string

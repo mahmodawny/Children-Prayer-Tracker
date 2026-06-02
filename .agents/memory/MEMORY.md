@@ -1,0 +1,3 @@
+- [SQLite drizzle query style](sqlite-drizzle-style.md) — use `.limit(1)` + destructuring instead of `.get()` to avoid PgSelectBase type errors across workspace packages.
+- [DB path resolution](db-path.md) — SQLite DB lives at `artifacts/api-server/prayer_tracker.db`; resolved via `process.cwd()` at runtime; drizzle.config.ts targets it with an absolute path.
+- [Lib typecheck order](lib-typecheck-order.md) — always run `pnpm run typecheck:libs` before checking leaf packages that reference composite libs like `@workspace/db`.
