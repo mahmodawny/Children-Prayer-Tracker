@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
-import { Moon, Sun, LogOut, Home, BarChart2, CalendarDays, Trophy, Medal, Users, LayoutDashboard } from "lucide-react";
+import { Moon, Sun, LogOut, Home, BarChart2, CalendarDays, Trophy, Users, LayoutDashboard } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "./ui/button";
 import { useQueryClient } from "@tanstack/react-query";
@@ -71,7 +71,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <Link href="/dashboard"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/dashboard' ? 'text-primary' : 'text-muted-foreground'}`}>إحصائياتي</a></Link>
                   <Link href="/history"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/history' ? 'text-primary' : 'text-muted-foreground'}`}>السجل</a></Link>
                   <Link href="/leaderboard"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/leaderboard' ? 'text-primary' : 'text-muted-foreground'}`}>المتصدرين</a></Link>
-                  <Link href="/achievements"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/achievements' ? 'text-primary' : 'text-muted-foreground'}`}>الإنجازات</a></Link>
                 </>
               ) : user?.role === "admin" ? (
                 <>
@@ -116,10 +115,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <Link href="/leaderboard" className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${location === '/leaderboard' ? 'text-primary' : 'text-muted-foreground'}`}>
               <Trophy className="h-5 w-5" />
               <span className="text-[10px] font-medium">المتصدرين</span>
-            </Link>
-            <Link href="/achievements" className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${location === '/achievements' ? 'text-primary' : 'text-muted-foreground'}`}>
-              <Medal className="h-5 w-5" />
-              <span className="text-[10px] font-medium">الإنجازات</span>
             </Link>
           </div>
         </nav>

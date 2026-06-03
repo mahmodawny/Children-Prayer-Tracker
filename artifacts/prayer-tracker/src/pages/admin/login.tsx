@@ -84,7 +84,7 @@ export default function AdminLogin() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>اسم المستخدم</FormLabel>
+                    <FormLabel style={{display:"flex",margin:'10px'}}>اسم المستخدم</FormLabel>
                     <FormControl>
                       <Input placeholder="admin" {...field} />
                     </FormControl>

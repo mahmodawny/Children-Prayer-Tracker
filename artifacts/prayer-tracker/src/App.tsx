@@ -13,7 +13,6 @@ import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import History from "@/pages/history";
 import Leaderboard from "@/pages/leaderboard";
-import Achievements from "@/pages/achievements";
 import AdminDashboard from "@/pages/admin/index";
 import AdminChildren from "@/pages/admin/children/index";
 import AdminChildDetail from "@/pages/admin/children/[id]";
@@ -33,7 +32,6 @@ function Router() {
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/history" component={History} />
         <Route path="/leaderboard" component={Leaderboard} />
-        <Route path="/achievements" component={Achievements} />
         
         {/* Admin routes */}
         <Route path="/admin" component={AdminDashboard} />
