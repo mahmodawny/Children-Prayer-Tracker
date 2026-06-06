@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useGetAdminOverview } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Users, Target, Activity, CalendarClock, KeyRound, Eye, EyeOff, CheckCircle2, Trophy, X } from "lucide-react";
+import {
+  Users, Target, Activity, CalendarClock,
+  KeyRound, Eye, EyeOff, CheckCircle2, Trophy, X, ChevronLeft
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminDashboard() {
@@ -19,10 +23,15 @@ export default function AdminDashboard() {
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
 
+  const closeForm = () => {
+    setShowChangePassword(false);
+    setPwError(""); setPwSuccess(false);
+    setCurrentPw(""); setNewPw(""); setConfirmPw("");
+  };
+
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPwError("");
-    setPwSuccess(false);
+    setPwError(""); setPwSuccess(false);
     if (newPw.length < 4) { setPwError("كلمة المرور الجديدة يجب أن تكون 4 أحرف على الأقل"); return; }
     if (newPw !== confirmPw) { setPwError("كلمة المرور الجديدة غير متطابقة"); return; }
     setPwLoading(true);
@@ -37,17 +46,10 @@ export default function AdminDashboard() {
       if (!res.ok) { setPwError(data.error || "حدث خطأ"); }
       else {
         setPwSuccess(true);
-        setCurrentPw(""); setNewPw(""); setConfirmPw("");
-        setTimeout(() => { setPwSuccess(false); closeForm(); }, 2000);
+        setTimeout(() => closeForm(), 2000);
       }
     } catch { setPwError("حدث خطأ في الاتصال"); }
     finally { setPwLoading(false); }
-  };
-
-  const closeForm = () => {
-    setShowChangePassword(false);
-    setPwError(""); setPwSuccess(false);
-    setCurrentPw(""); setNewPw(""); setConfirmPw("");
   };
 
   if (isLoading) {
@@ -95,13 +97,12 @@ export default function AdminDashboard() {
         {showChangePassword && (
           <motion.div
             key="pw-panel"
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.18 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15 }}
             className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden"
           >
-            {/* Panel header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/40">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -114,7 +115,6 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Panel body */}
             <div className="p-5">
               {pwSuccess ? (
                 <div className="flex items-center justify-center gap-2 py-5 text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -124,7 +124,6 @@ export default function AdminDashboard() {
               ) : (
                 <form onSubmit={handleChangePassword} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Current password */}
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground font-medium">كلمة المرور الحالية</Label>
                       <div className="relative">
@@ -134,7 +133,6 @@ export default function AdminDashboard() {
                         </button>
                       </div>
                     </div>
-                    {/* New password */}
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground font-medium">كلمة المرور الجديدة</Label>
                       <div className="relative">
@@ -144,7 +142,6 @@ export default function AdminDashboard() {
                         </button>
                       </div>
                     </div>
-                    {/* Confirm password */}
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground font-medium">تأكيد كلمة المرور</Label>
                       <Input type="password" placeholder="••••••••" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="h-9 text-sm" dir="ltr" />
@@ -181,7 +178,7 @@ export default function AdminDashboard() {
               key={s.label}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.25 }}
+              transition={{ delay: i * 0.06, duration: 0.22 }}
               className="rounded-2xl border border-border bg-card p-5 shadow-sm"
             >
               <div className="flex items-start justify-between gap-3">
@@ -191,7 +188,7 @@ export default function AdminDashboard() {
                   <p className="text-xs text-muted-foreground mt-1.5">{s.sub}</p>
                 </div>
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${s.iconBg}`}>
-                  <Icon className={`w-4.5 h-4.5 ${s.iconColor}`} />
+                  <Icon className={`w-[18px] h-[18px] ${s.iconColor}`} />
                 </div>
               </div>
             </motion.div>
@@ -199,26 +196,49 @@ export default function AdminDashboard() {
         })}
       </div>
 
-      {/* Top Child */}
-      {overview.topChild && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.28, duration: 0.25 }}
-          className="flex items-center gap-4 rounded-2xl border border-amber-300/50 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-950/20 px-5 py-4"
-        >
-          <div className="w-9 h-9 rounded-xl bg-amber-200/60 dark:bg-amber-800/40 flex items-center justify-center flex-shrink-0">
-            <Trophy className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">المتصدر الحالي</p>
-            <p className="font-bold text-foreground">
-              {overview.topChild}
-              <span className="text-muted-foreground font-normal text-sm"> — ما شاء الله 🌟</span>
-            </p>
-          </div>
-        </motion.div>
-      )}
+      {/* Quick Links */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Link href="/admin/children">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28, duration: 0.22 }}
+            className="group flex items-center justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
+                <Users className="w-[18px] h-[18px] text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground text-sm">إدارة الأطفال</p>
+                <p className="text-xs text-muted-foreground">إضافة وتعديل وحذف الحسابات</p>
+              </div>
+            </div>
+            <ChevronLeft className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </motion.div>
+        </Link>
+
+        {/* Top Child */}
+        {overview.topChild && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.34, duration: 0.22 }}
+            className="flex items-center gap-4 rounded-2xl border border-amber-300/50 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-950/20 px-5 py-4 shadow-sm"
+          >
+            <div className="w-9 h-9 rounded-xl bg-amber-200/60 dark:bg-amber-800/40 flex items-center justify-center flex-shrink-0">
+              <Trophy className="w-[18px] h-[18px] text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">المتصدر الحالي</p>
+              <p className="font-bold text-foreground truncate">
+                {overview.topChild}
+                <span className="text-muted-foreground font-normal text-sm"> — ما شاء الله 🌟</span>
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </div>
 
     </div>
   );
