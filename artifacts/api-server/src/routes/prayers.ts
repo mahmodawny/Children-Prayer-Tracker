@@ -48,6 +48,7 @@ async function fetchPrayerTimes(city: string, country: string, date: string) {
     if (data.code === 200) {
       return {
         fajr: data.data.timings.Fajr.substring(0, 5),
+        sunrise: data.data.timings.Sunrise.substring(0, 5),
         dhuhr: data.data.timings.Dhuhr.substring(0, 5),
         asr: data.data.timings.Asr.substring(0, 5),
         maghrib: data.data.timings.Maghrib.substring(0, 5),
@@ -59,7 +60,7 @@ async function fetchPrayerTimes(city: string, country: string, date: string) {
 }
 
 function getDefaultPrayerTimes() {
-  return { fajr: "04:30", dhuhr: "12:15", asr: "15:30", maghrib: "18:45", isha: "20:15" };
+  return { fajr: "04:30", sunrise: "06:00", dhuhr: "12:15", asr: "15:30", maghrib: "18:45", isha: "20:15" };
 }
 
 function timeToMinutes(time: string): number {
@@ -68,6 +69,9 @@ function timeToMinutes(time: string): number {
 }
 
 function getPrayerWindowEnd(times: Record<string, string>, prayerName: string): number {
+  if (prayerName === "fajr" && times.sunrise) {
+    return timeToMinutes(times.sunrise);
+  }
   const order = PRAYER_NAMES;
   const idx = order.indexOf(prayerName as typeof order[number]);
   if (idx < order.length - 1) {
