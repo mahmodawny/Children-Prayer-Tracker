@@ -110,7 +110,7 @@ export default function AdminLogin() {
                   {errorMsg}
                 </div>
               )}
-              <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+              <Button style={{marginTop:"10px",cursor:"pointer"}} type="submit" className="w-full" disabled={loginMutation.isPending}>
                 {loginMutation.isPending ? "جاري تسجيل الدخول..." : "دخول"}
               </Button>
             </form>
