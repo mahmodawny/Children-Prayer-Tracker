@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useGetAdminOverview } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Users, Target, Activity, CalendarClock, KeyRound, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Users, Target, Activity, CalendarClock, KeyRound, Eye, EyeOff, CheckCircle2, Trophy, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminDashboard() {
   const { data: overview, isLoading } = useGetAdminOverview();
@@ -23,226 +23,203 @@ export default function AdminDashboard() {
     e.preventDefault();
     setPwError("");
     setPwSuccess(false);
-
-    if (newPw.length < 4) {
-      setPwError("كلمة المرور الجديدة يجب أن تكون 4 أحرف على الأقل");
-      return;
-    }
-    if (newPw !== confirmPw) {
-      setPwError("كلمة المرور الجديدة غير متطابقة");
-      return;
-    }
-
+    if (newPw.length < 4) { setPwError("كلمة المرور الجديدة يجب أن تكون 4 أحرف على الأقل"); return; }
+    if (newPw !== confirmPw) { setPwError("كلمة المرور الجديدة غير متطابقة"); return; }
     setPwLoading(true);
     try {
       const token = localStorage.getItem("prayer_token");
       const res = await fetch("/api/auth/change-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setPwError(data.error || "حدث خطأ");
-      } else {
+      if (!res.ok) { setPwError(data.error || "حدث خطأ"); }
+      else {
         setPwSuccess(true);
-        setCurrentPw("");
-        setNewPw("");
-        setConfirmPw("");
-        setTimeout(() => {
-          setPwSuccess(false);
-          setShowChangePassword(false);
-        }, 2000);
+        setCurrentPw(""); setNewPw(""); setConfirmPw("");
+        setTimeout(() => { setPwSuccess(false); closeForm(); }, 2000);
       }
-    } catch {
-      setPwError("حدث خطأ في الاتصال");
-    } finally {
-      setPwLoading(false);
-    }
+    } catch { setPwError("حدث خطأ في الاتصال"); }
+    finally { setPwLoading(false); }
+  };
+
+  const closeForm = () => {
+    setShowChangePassword(false);
+    setPwError(""); setPwSuccess(false);
+    setCurrentPw(""); setNewPw(""); setConfirmPw("");
   };
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="h-32 bg-muted animate-pulse rounded-xl" />
-        ))}
+      <div className="space-y-6">
+        <div className="h-10 w-48 bg-muted animate-pulse rounded-lg" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <div key={i} className="h-28 bg-muted animate-pulse rounded-2xl" />)}
+        </div>
       </div>
     );
   }
 
   if (!overview) return null;
 
+  const stats = [
+    { label: "إجمالي الأطفال", sub: "مسجلين في النظام", value: overview.totalChildren, icon: Users, iconBg: "bg-blue-100 dark:bg-blue-900/40", iconColor: "text-blue-600 dark:text-blue-400" },
+    { label: "إجمالي الصلوات", sub: "صلاة مسجّلة", value: overview.totalPrayers, icon: Target, iconBg: "bg-primary/10", iconColor: "text-primary" },
+    { label: "متوسط الالتزام", sub: "لجميع الأطفال", value: `${overview.averageCompliance}%`, icon: Activity, iconBg: "bg-emerald-100 dark:bg-emerald-900/40", iconColor: "text-emerald-600 dark:text-emerald-400" },
+    { label: "صلوات اليوم", sub: "تم تسجيلها اليوم", value: overview.todayPrayers, icon: CalendarClock, iconBg: "bg-amber-100 dark:bg-amber-900/40", iconColor: "text-amber-600 dark:text-amber-400" },
+  ];
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 max-w-5xl">
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">نظرة عامة</h1>
-          <p className="text-muted-foreground mt-1">مرحباً بك في لوحة الإدارة</p>
+          <h1 className="text-2xl font-bold text-foreground">نظرة عامة</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">مرحباً بك في لوحة الإدارة</p>
         </div>
         <Button
           variant="outline"
           size="sm"
-          className="gap-2"
-          onClick={() => { setShowChangePassword(v => !v); setPwError(""); setPwSuccess(false); }}
+          className="gap-2 rounded-full border-border"
+          onClick={() => showChangePassword ? closeForm() : setShowChangePassword(true)}
         >
           <KeyRound className="w-4 h-4" />
           تغيير كلمة المرور
         </Button>
       </div>
 
-      {/* Change Password Card */}
-      {showChangePassword && (
-        <Card className="border-primary/30 bg-primary/5 m-10">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-primary" />
-              تغيير كلمة مرور المشرف
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {pwSuccess ? (
-              <div className="flex items-center gap-2 text-emerald-600 font-semibold py-4 justify-center">
-                <CheckCircle2 className="w-5 h-5" />
-                تم تغيير كلمة المرور بنجاح ✓
+      {/* Change Password Panel */}
+      <AnimatePresence>
+        {showChangePassword && (
+          <motion.div
+            key="pw-panel"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.18 }}
+            className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden"
+          >
+            {/* Panel header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/40">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <KeyRound className="w-3.5 h-3.5 text-primary" />
+                </div>
+                <span className="text-sm font-semibold text-foreground">تغيير كلمة مرور المشرف</span>
               </div>
-            ) : (
-              <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <Label>كلمة المرور الحالية</Label>
-                  <div className="relative">
-                    <Input
-                      type={showCurrent ? "text" : "password"}
-                      placeholder="أدخل كلمة المرور الحالية"
-                      value={currentPw}
-                      onChange={e => setCurrentPw(e.target.value)}
-                      className="pl-10"
-                      dir="ltr"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrent(v => !v)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+              <button onClick={closeForm} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Panel body */}
+            <div className="p-5">
+              {pwSuccess ? (
+                <div className="flex items-center justify-center gap-2 py-5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                  <CheckCircle2 className="w-5 h-5" />
+                  تم تغيير كلمة المرور بنجاح
+                </div>
+              ) : (
+                <form onSubmit={handleChangePassword} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Current password */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground font-medium">كلمة المرور الحالية</Label>
+                      <div className="relative">
+                        <Input type={showCurrent ? "text" : "password"} placeholder="••••••••" value={currentPw} onChange={e => setCurrentPw(e.target.value)} className="pl-9 h-9 text-sm" dir="ltr" />
+                        <button type="button" onClick={() => setShowCurrent(v => !v)} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                          {showCurrent ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                    {/* New password */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground font-medium">كلمة المرور الجديدة</Label>
+                      <div className="relative">
+                        <Input type={showNew ? "text" : "password"} placeholder="••••••••" value={newPw} onChange={e => setNewPw(e.target.value)} className="pl-9 h-9 text-sm" dir="ltr" />
+                        <button type="button" onClick={() => setShowNew(v => !v)} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                          {showNew ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                    {/* Confirm password */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground font-medium">تأكيد كلمة المرور</Label>
+                      <Input type="password" placeholder="••••••••" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="h-9 text-sm" dir="ltr" />
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-1">
-                  <Label>كلمة المرور الجديدة</Label>
-                  <div className="relative">
-                    <Input
-                      type={showNew ? "text" : "password"}
-                      placeholder="كلمة المرور الجديدة"
-                      value={newPw}
-                      onChange={e => setNewPw(e.target.value)}
-                      className="pl-10"
-                      dir="ltr"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNew(v => !v)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                  {pwError && (
+                    <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+                      {pwError}
+                    </p>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button type="submit" size="sm" className="rounded-full px-5" disabled={pwLoading || !currentPw || !newPw || !confirmPw}>
+                      {pwLoading ? "جاري الحفظ..." : "حفظ"}
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" className="rounded-full px-5" onClick={closeForm}>
+                      إلغاء
+                    </Button>
                   </div>
-                </div>
-
-                <div className="space-y-1">
-                  <Label>تأكيد كلمة المرور الجديدة</Label>
-                  <Input
-                    type="password"
-                    placeholder="أعد كتابة كلمة المرور"
-                    value={confirmPw}
-                    onChange={e => setConfirmPw(e.target.value)}
-                    dir="ltr"
-                  />
-                </div>
-
-                {pwError && (
-                  <div className="md:col-span-3 text-sm text-destructive bg-destructive/10 px-4 py-2 rounded-lg">
-                    {pwError}
-                  </div>
-                )}
-
-                <div className="md:col-span-3 flex gap-3">
-                  <Button type="submit" disabled={pwLoading || !currentPw || !newPw || !confirmPw}>
-                    {pwLoading ? "جاري الحفظ..." : "حفظ كلمة المرور"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => { setShowChangePassword(false); setPwError(""); }}
-                  >
-                    إلغاء
-                  </Button>
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                </form>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 m-10">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي الأطفال</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overview.totalChildren}</div>
-            <p className="text-xs text-muted-foreground mt-1">مسجلين في النظام</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي الصلوات</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overview.totalPrayers}</div>
-            <p className="text-xs text-muted-foreground mt-1">صلاة تم تسجيلها</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">متوسط الالتزام</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overview.averageCompliance}%</div>
-            <p className="text-xs text-muted-foreground mt-1">لجميع الأطفال</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">صلوات اليوم</CardTitle>
-            <CalendarClock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overview.todayPrayers}</div>
-            <p className="text-xs text-muted-foreground mt-1">تم تسجيلها هذا اليوم</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((s, i) => {
+          const Icon = s.icon;
+          return (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06, duration: 0.25 }}
+              className="rounded-2xl border border-border bg-card p-5 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground font-medium truncate">{s.label}</p>
+                  <p className="text-3xl font-bold text-foreground mt-1 leading-none">{s.value}</p>
+                  <p className="text-xs text-muted-foreground mt-1.5">{s.sub}</p>
+                </div>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${s.iconBg}`}>
+                  <Icon className={`w-4.5 h-4.5 ${s.iconColor}`} />
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
+      {/* Top Child */}
       {overview.topChild && (
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-6">
-            <h3 className="font-bold text-lg mb-2 text-primary">المتصدر الحالي 🏆</h3>
-            <p>الطفل <strong>{overview.topChild}</strong> يتصدر القائمة حالياً. ما شاء الله!</p>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.28, duration: 0.25 }}
+          className="flex items-center gap-4 rounded-2xl border border-amber-300/50 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-950/20 px-5 py-4"
+        >
+          <div className="w-9 h-9 rounded-xl bg-amber-200/60 dark:bg-amber-800/40 flex items-center justify-center flex-shrink-0">
+            <Trophy className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">المتصدر الحالي</p>
+            <p className="font-bold text-foreground">
+              {overview.topChild}
+              <span className="text-muted-foreground font-normal text-sm"> — ما شاء الله 🌟</span>
+            </p>
+          </div>
+        </motion.div>
       )}
+
     </div>
   );
 }
