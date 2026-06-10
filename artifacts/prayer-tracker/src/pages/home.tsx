@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Clock, Lock, CheckCircle2, Sparkles, Sunrise, Sun, CloudSun, Sunset, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PrayerRecordInputPrayerName } from "@workspace/api-client-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ar } from "date-fns/locale";
 
 const PRAYER_ICONS: Record<string, any> = {
@@ -53,10 +53,10 @@ export default function Home() {
     );
   }
 
-  if (!today) return null;
+  if (!today?.date) return null;
 
   const progress = (today.recordedCount / today.totalCount) * 100;
-  const todayFormatted = format(new Date(today.date + "T00:00:00"), "EEEE، d MMMM yyyy", { locale: ar });
+  const todayFormatted = format(parseISO(today.date), "EEEE، d MMMM yyyy", { locale: ar });
   const allDone = today.recordedCount === today.totalCount;
   const circumference = 2 * Math.PI * 38;
 
