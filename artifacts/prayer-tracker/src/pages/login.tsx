@@ -38,7 +38,7 @@ export default function Login() {
       {
         onSuccess: (res) => {
           localStorage.setItem("prayer_token", res.token);
-          queryClient.invalidateQueries();
+          queryClient.setQueryData(["getMe"], res.user);
           setLocation(res.user.role === "admin" ? "/admin" : "/");
         },
         onError: () => {

@@ -52,7 +52,7 @@ export default function AdminLogin() {
             return;
           }
           localStorage.setItem("prayer_token", res.token);
-          queryClient.invalidateQueries();
+          queryClient.setQueryData(["getMe"], res.user);
           setLocation("/admin");
         },
         onError: () => {
