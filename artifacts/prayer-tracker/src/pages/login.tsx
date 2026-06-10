@@ -76,8 +76,8 @@ export default function Login() {
           queryClient.invalidateQueries();
           setLocation("/");
         },
-        onError: (err: any) => {
-          setErrorMsg(err?.message || "حدث خطأ، جرب اسم مستخدم آخر");
+        onError: () => {
+          setErrorMsg("حدث خطأ، جرب اسم مستخدم آخر");
         },
       }
     );

@@ -55,8 +55,8 @@ export default function AdminLogin() {
           queryClient.invalidateQueries();
           setLocation("/admin");
         },
-        onError: (err: any) => {
-          setErrorMsg(err.message || "اسم المستخدم أو كلمة المرور غير صحيحة");
+        onError: () => {
+          setErrorMsg("اسم المستخدم أو كلمة المرور غير صحيحة");
         },
       }
     );
