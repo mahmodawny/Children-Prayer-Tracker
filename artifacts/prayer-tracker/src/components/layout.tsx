@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
-import { Moon, Sun, LogOut, Home, BarChart2, CalendarDays, Trophy, Users, LayoutDashboard } from "lucide-react";
+import { Moon, Sun, LogOut, Home, BarChart2, CalendarDays, Users, LayoutDashboard, Trophy } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "./ui/button";
 import { useQueryClient } from "@tanstack/react-query";
@@ -70,12 +70,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <Link href="/"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/' ? 'text-primary' : 'text-muted-foreground'}`}>الرئيسية</a></Link>
                   <Link href="/dashboard"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/dashboard' ? 'text-primary' : 'text-muted-foreground'}`}>إحصائياتي</a></Link>
                   <Link href="/history"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/history' ? 'text-primary' : 'text-muted-foreground'}`}>السجل</a></Link>
-                  <Link href="/leaderboard"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/leaderboard' ? 'text-primary' : 'text-muted-foreground'}`}>المتصدرين</a></Link>
                 </>
               ) : user?.role === "admin" ? (
                 <>
                   <Link href="/admin"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/admin' ? 'text-primary' : 'text-muted-foreground'}`}>لوحة التحكم</a></Link>
                   <Link href="/admin/children"><a className={`text-sm font-medium transition-colors hover:text-primary ${location.startsWith('/admin/children') ? 'text-primary' : 'text-muted-foreground'}`}>الأطفال</a></Link>
+                  <Link href="/admin/leaderboard"><a className={`text-sm font-medium transition-colors hover:text-primary ${location === '/admin/leaderboard' ? 'text-primary' : 'text-muted-foreground'}`}>لوحة الشرف</a></Link>
                 </>
               ) : null}
             </nav>
@@ -112,10 +112,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <CalendarDays className="h-5 w-5" />
               <span className="text-[10px] font-medium">السجل</span>
             </Link>
-            <Link href="/leaderboard" className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${location === '/leaderboard' ? 'text-primary' : 'text-muted-foreground'}`}>
-              <Trophy className="h-5 w-5" />
-              <span className="text-[10px] font-medium">المتصدرين</span>
-            </Link>
           </div>
         </nav>
       )}
@@ -129,6 +125,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <Link href="/admin/children" className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${location.startsWith('/admin/children') ? 'text-primary' : 'text-muted-foreground'}`}>
               <Users className="h-5 w-5" />
               <span className="text-[10px] font-medium">الأطفال</span>
+            </Link>
+            <Link href="/admin/leaderboard" className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${location === '/admin/leaderboard' ? 'text-primary' : 'text-muted-foreground'}`}>
+              <Trophy className="h-5 w-5" />
+              <span className="text-[10px] font-medium">لوحة الشرف</span>
             </Link>
           </div>
         </nav>

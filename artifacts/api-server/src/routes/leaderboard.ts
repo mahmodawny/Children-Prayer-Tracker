@@ -1,45 +1,45 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { prayerRecordsTable, usersTable, achievementsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
-import { authMiddleware } from "../middlewares/auth";
-import { GetLeaderboardQueryParams } from "@workspace/api-zod";
+import { eq, and, sql } from "drizzle-orm";
+import { authMiddleware, adminMiddleware } from "../middlewares/auth";
 
 const router = Router();
 
-router.get("/leaderboard", authMiddleware, async (req, res) => {
-  const parsed = GetLeaderboardQueryParams.safeParse(req.query);
-  const period = (parsed.success && parsed.data.period) ? parsed.data.period : "weekly";
-
+router.get("/leaderboard", adminMiddleware, async (req, res) => {
   const now = new Date();
-  let fromDate = "";
-  if (period === "daily") fromDate = now.toISOString().slice(0, 10);
-  else if (period === "weekly") fromDate = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
-  else if (period === "monthly") fromDate = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+  const yearParam = parseInt(req.query.year as string) || now.getFullYear();
+  const monthParam = parseInt(req.query.month as string) || (now.getMonth() + 1);
+
+  const fromDate = `${yearParam}-${String(monthParam).padStart(2, "0")}-01`;
+  const lastDay = new Date(yearParam, monthParam, 0).getDate();
+  const toDate = `${yearParam}-${String(monthParam).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   const children = await db.select().from(usersTable).where(eq(usersTable.role, "child"));
-  const allRecords = await db.select().from(prayerRecordsTable);
+  const monthRecords = await db.select().from(prayerRecordsTable).where(
+    and(
+      sql`${prayerRecordsTable.date} >= ${fromDate}`,
+      sql`${prayerRecordsTable.date} <= ${toDate}`
+    )
+  );
 
   const childStats = children.map(child => {
-    const records = period === "all"
-      ? allRecords.filter(r => r.userId === child.id)
-      : allRecords.filter(r => r.userId === child.id && r.date >= fromDate);
+    const records = monthRecords.filter(r => r.userId === child.id);
     const prayers = records.length;
-    const daysInPeriod = period === "daily" ? 1 : period === "weekly" ? 7 : 30;
-    const compliance = Math.round((prayers / (daysInPeriod * 5)) * 100);
-    return { child, prayers, compliance, points: child.points };
+    const compliance = Math.round((prayers / (lastDay * 5)) * 100);
+    return { child, prayers, compliance };
   });
 
-  childStats.sort((a, b) => b.points - a.points || b.prayers - a.prayers);
+  childStats.sort((a, b) => b.prayers - a.prayers || a.child.name.localeCompare(b.child.name));
 
   res.json(childStats.map((s, i) => ({
     rank: i + 1,
     userId: s.child.id,
     name: s.child.name,
     username: s.child.username,
-    points: s.points,
     prayers: s.prayers,
     compliance: s.compliance,
+    points: s.child.points,
   })));
 });
 

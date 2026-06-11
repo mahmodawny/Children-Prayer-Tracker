@@ -12,10 +12,10 @@ import AdminLogin from "@/pages/admin/login";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import History from "@/pages/history";
-import Leaderboard from "@/pages/leaderboard";
 import AdminDashboard from "@/pages/admin/index";
 import AdminChildren from "@/pages/admin/children/index";
 import AdminChildDetail from "@/pages/admin/children/[id]";
+import AdminLeaderboard from "@/pages/admin/leaderboard";
 
 const queryClient = new QueryClient();
 
@@ -31,12 +31,12 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/history" component={History} />
-        <Route path="/leaderboard" component={Leaderboard} />
         
         {/* Admin routes */}
         <Route path="/admin" component={AdminDashboard} />
         <Route path="/admin/children" component={AdminChildren} />
         <Route path="/admin/children/:id" component={AdminChildDetail} />
+        <Route path="/admin/leaderboard" component={AdminLeaderboard} />
         
         <Route component={NotFound} />
       </Switch>
