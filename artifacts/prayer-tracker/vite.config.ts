@@ -11,6 +11,7 @@ export default defineConfig({
   ],
   server: {
     allowedHosts: true,
+    port: process.env["PORT"] ? parseInt(process.env["PORT"]) : 5173,
     proxy: {
       "/api": {
         target: "http://localhost:8080",
