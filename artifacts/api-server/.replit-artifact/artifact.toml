@@ -29,6 +29,7 @@ args = ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]
 [services.production.run.env]
 PORT = "8080"
 NODE_ENV = "production"
+DATABASE_PATH = "artifacts/api-server/prayer_tracker.db"
 
 [services.production.health.startup]
 path = "/api/healthz"
