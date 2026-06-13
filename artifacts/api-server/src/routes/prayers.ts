@@ -7,8 +7,6 @@ import { RecordPrayerBody, GetPrayerHistoryQueryParams, GetPrayerTimesQueryParam
 
 const router = Router();
 
-const TIMEZONE = "Africa/Cairo";
-
 const PRAYER_NAMES = ["fajr", "dhuhr", "asr", "maghrib", "isha"] as const;
 const PRAYER_NAMES_AR: Record<string, string> = {
   fajr: "الفجر",
@@ -18,10 +16,42 @@ const PRAYER_NAMES_AR: Record<string, string> = {
   isha: "العشاء",
 };
 
+// Egypt uses summer time (UTC+3) from last Friday of April to last Thursday of October
+function isEgyptSummerTime(): boolean {
+  const now = new Date();
+  const month = now.getUTCMonth() + 1; // 1–12
+  return month >= 4 && month <= 10;
+}
+
+// UTC+3 in summer, UTC+2 in winter
+function getEgyptTimezone(): string {
+  return isEgyptSummerTime() ? "Etc/GMT-3" : "Africa/Cairo";
+}
+
+// Add 1 hour to prayer times when Egypt is on summer time
+// (Aladhan API returns standard time, we need to shift for DST)
+function adjustPrayerTimesForDST(times: ReturnType<typeof getDefaultPrayerTimes>): ReturnType<typeof getDefaultPrayerTimes> {
+  if (!isEgyptSummerTime()) return times;
+  const shift = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    const totalMin = h * 60 + m + 60;
+    return `${String(Math.floor(totalMin / 60) % 24).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
+  };
+  return {
+    fajr: shift(times.fajr),
+    sunrise: shift(times.sunrise),
+    dhuhr: shift(times.dhuhr),
+    asr: shift(times.asr),
+    maghrib: shift(times.maghrib),
+    isha: shift(times.isha),
+  };
+}
+
 function getNowInCairo(): { date: string; minutes: number } {
   const now = new Date();
+  const tz = getEgyptTimezone();
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: TIMEZONE,
+    timeZone: tz,
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit",
     hour12: false,
@@ -88,7 +118,7 @@ router.get("/prayers/today", authMiddleware, async (req, res) => {
   const city = user?.city ?? "Cairo";
   const country = user?.country ?? "Egypt";
 
-  const times = await fetchPrayerTimes(city, country, today);
+  const times = adjustPrayerTimesForDST(await fetchPrayerTimes(city, country, today));
 
   const recorded = await db.select().from(prayerRecordsTable)
     .where(and(eq(prayerRecordsTable.userId, userId), eq(prayerRecordsTable.date, today)));
@@ -132,7 +162,7 @@ router.post("/prayers/record", authMiddleware, async (req, res) => {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   const city = user?.city ?? "Cairo";
   const country = user?.country ?? "Egypt";
-  const times = await fetchPrayerTimes(city, country, today);
+  const times = adjustPrayerTimesForDST(await fetchPrayerTimes(city, country, today));
 
   const prayerStart = timeToMinutes(times[prayerName]);
   const prayerEnd = getPrayerWindowEnd(times, prayerName);
@@ -250,7 +280,7 @@ router.get("/prayers/times", async (req, res) => {
   const city = (parsed.success && parsed.data.city) ? parsed.data.city : "Cairo";
   const country = (parsed.success && parsed.data.country) ? parsed.data.country : "Egypt";
   const { date: today } = getNowInCairo();
-  const times = await fetchPrayerTimes(city, country, today);
+  const times = adjustPrayerTimesForDST(await fetchPrayerTimes(city, country, today));
   res.json({ ...times, date: today, city, country });
 });
 
